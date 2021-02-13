@@ -34,12 +34,14 @@ def vecdist2(p0, p1):
 def vecdist(p0, p1):
     return veclen(sub(p1, p0))
 
+def vecindir(angle, veclen = 1.0):
+    return tuple(cos(angle)*veclen, sin(angle)*veclen)
+
 class Map:
-    def __init__(self, size, metersPerPixel, car):
-        self.car = car
-        self.size = size
+    def __init__(self, sizeInMeters, metersPerPixel):
         self.scale = metersPerPixel
-        self.map = Image.new("I", size, color = Unknown)
+        self.size = self.pixelFromPos(sizeInMeters)
+        self.map = Image.new("I", self.size, color = Unknown)
         
     def pixelInside(self, pix):
         x, y = pix
@@ -48,6 +50,12 @@ class Map:
     def pixelFromPos(self, pos):
         x, y = int(pos[0] / self.scale), int(pos[1] / self.scale)
         return (x, y)
+    
+    def posFromPixel(self, pix):
+        return mul(pix, self.scale)
+        
+    def sizeInMeters(self):
+        return self.posFromPixel(self.size)
     
     def getAt(self, pos):
         pix = self.pixelFromPos(pos)

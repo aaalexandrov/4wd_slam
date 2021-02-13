@@ -63,6 +63,17 @@ class Car:
         self._interrupted = True
         self._lock.release()
 
+    def isFinished(self):
+        self._lock.acquire()
+        res = self._finished
+        self._lock.release()
+        return res
+
+    def setFinished(self, val):
+        self._lock.acquire()
+        self._finished = val
+        self._lock.release()
+
     def stop(self):
         self.motor.setMotorModel(0, 0, 0, 0)
 
@@ -114,12 +125,13 @@ class Car:
     def scanSector(self, angleStart, angleEnd, angleStep = math.pi/(180/5)):
         dist = []
         for dir in frange(angleStart, angleEnd, angleStep):
-            dist.append(self.measureDistance(dir))
+            dist.append((dir, self.measureDistance(dir)))
         return dist
 
     def cmdThreadFunc(self, cmd):
         try:
             cmd()
+            self.setFinished(True)
         except InterruptedException:
             print("Command interrupted!")
         finally:
@@ -131,6 +143,7 @@ class Car:
             self._cmdThread.join()
             self._cmdThread = None
             self._interrupted = False
+            self._finished = False
         if not cmd:
             return
         self._cmdThread = threading.Thread(target=(lambda: self.cmdThreadFunc(cmd)))
