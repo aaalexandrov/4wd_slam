@@ -13,7 +13,6 @@ class SlamUI:
         self.window.title("Freenove 4WD Navigation")
         
         self.imgTk = ImageTk.PhotoImage(image="I", size=(self.ImageSize, self.ImageSize))
-        self.imgSize = (self.imgTk.width(), self.imgTk.height())
         self.map = tk.Canvas(width=self.imgTk.width(), height=self.imgTk.height(), bg="white")
         self.mapImg = self.map.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         self.map.bind("<Button-1>", self.mapClicked)
@@ -38,14 +37,6 @@ class SlamUI:
         self.target = None
         
         self.syncWithSlam(True)
-        
-        """
-        img = Image.new("I", (16, 16), color="grey")
-        for y in range(img.height):
-            for x in range(img.width):
-                img.putpixel((x, y), x * y)
-        self.window.after(2000, lambda: self.updateImage(img))
-        """
 
     def setArrow(self, pixStart, pixEnd):
         if self.idArrow:
@@ -58,21 +49,25 @@ class SlamUI:
         self.idCircle = self.map.create_oval(pixPos[0]-pixRadius, pixPos[1]-pixRadius, pixPos[0]+pixRadius, pixPos[1]+pixRadius, fill="green")
 
     def pixelFromPos(self, pos):
-        return mul(div(pos, self.slam.map.sizeInMeters()), (self.ImageSize,)*2)
+        pix = mul(div(pos, self.slam.map.sizeInMeters()), (self.ImageSize,)*2)
+        pix = (pix[0], self.ImageSize - pix[1])
+        return pix
         
     def posFromPixel(self, pix):
+        pix = (pix[0], self.ImageSize - pix[1])
         return mul(div(pix, (self.ImageSize,)*2), self.slam.map.sizeInMeters())
 
     def syncWithSlam(self, syncMap):
         pix = self.pixelFromPos(self.slam.pos)
         delta = vecindir(self.slam.dir, 3.0)
+        delta = (delta[0], -delta[1])
         self.setArrow(sub(pix, delta), add(pix, delta))
         if syncMap:
             self.updateImage(self.slam.map.map)
         
     def updateImage(self, img):
+        img = img.transpose(Image.FLIP_TOP_BOTTOM)
         self.imgTk.paste(img.resize((self.ImageSize, self.ImageSize), resample=Image.NEAREST))
-        self.imgSize = (img.width, img.height)
 
     def mapClicked(self, event):
         if event.x >= self.imgTk.width() or event.y >= self.imgTk.height():
@@ -88,12 +83,19 @@ class SlamUI:
     def scan(self):
         self.slam.car.execCommand(self.scanCmd)
         
+    def turnCmd(self, tgt):
+        self.slam.turn(tgt)
+        self.syncWithSlam(False)
+    
     def turn(self):
-        self.slam.map.setLine(self.slam.pos, self.target)
-        self.syncWithSlam(True)
+        self.slam.car.execCommand(lambda: self.turnCmd(self.target))
+
+    def goCmd(self, tgt):
+        self.slam.moveTo(tgt)
+        self.syncWithSlam(False)
 
     def go(self):
-        pass
+        self.slam.car.execCommand(lambda: self.goCmd(self.target))
     
     def stop(self):
         self.slam.car.execCommand(None)

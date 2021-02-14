@@ -37,6 +37,15 @@ def vecdist(p0, p1):
 def vecindir(angle, vlen = 1.0):
     return (math.cos(angle)*vlen, math.sin(angle)*vlen)
 
+def vecdir(v):
+    return math.atan2(v[1], v[0])
+    
+def normalize_angle(a):
+    a = a % (math.pi*2)
+    if a > math.pi:
+        a -= math.pi*2
+    return a
+
 class Map:
     def __init__(self, sizeInMeters, metersPerPixel):
         self.scale = metersPerPixel
@@ -76,7 +85,9 @@ class Map:
         while t <= 1:
             p = add(pos0, mul((t, t), dpos))
             pix = self.pixelFromPos(p)
-            self.setPix(pix, Free)
+            v = self.getPix(pix)
+            if v != Blocked:
+                self.setPix(pix, Free)
             t += step
         self.setPix(self.pixelFromPos(pos1), Blocked)
         self.setPix(self.pixelFromPos(pos0), Free)
