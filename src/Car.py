@@ -125,7 +125,7 @@ class Car:
     def scanSector(self, angleStart, angleEnd, angleStep = math.pi/(180/5)):
         dist = []
         for dir in frange(angleStart, angleEnd, angleStep):
-            dist.append((dir, self.measureDistance(dir)))
+            dist.append((dir, self.measureDistance(dir, 0.0, 1)))
         return dist
 
     def cmdThreadFunc(self, cmd):
