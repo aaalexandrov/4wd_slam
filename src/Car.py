@@ -145,6 +145,7 @@ class Car:
             self._interrupted = False
             self._finished = False
         if not cmd:
+            self.stop()
             return
         self._cmdThread = threading.Thread(target=(lambda: self.cmdThreadFunc(cmd)))
         self._cmdThread.start()

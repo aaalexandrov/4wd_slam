@@ -20,7 +20,7 @@ def mul(p0, p1):
     return tuple(e0*e1 for e0, e1 in zip(p0, p1))
 
 def div(p0, p1):
-    return tuple(e0-e1 for e0, e1 in zip(p0, p1))
+    return tuple(e0/e1 for e0, e1 in zip(p0, p1))
 
 def veclen2(p):
     return sum(e*e for e in p)
@@ -34,8 +34,8 @@ def vecdist2(p0, p1):
 def vecdist(p0, p1):
     return veclen(sub(p1, p0))
 
-def vecindir(angle, veclen = 1.0):
-    return tuple(cos(angle)*veclen, sin(angle)*veclen)
+def vecindir(angle, vlen = 1.0):
+    return (math.cos(angle)*vlen, math.sin(angle)*vlen)
 
 class Map:
     def __init__(self, sizeInMeters, metersPerPixel):
@@ -52,7 +52,7 @@ class Map:
         return (x, y)
     
     def posFromPixel(self, pix):
-        return mul(pix, self.scale)
+        return mul(pix, (self.scale,)*2)
         
     def sizeInMeters(self):
         return self.posFromPixel(self.size)

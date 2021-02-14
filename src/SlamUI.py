@@ -1,19 +1,24 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 from Map import *
+from Slam import *
 
 class SlamUI:
     ImageSize = 512
     
-    def __init__(self):
+    def __init__(self, slam):
+        self.slam = slam
+            
         self.window = tk.Tk()
         self.window.title("Freenove 4WD Navigation")
+        
         self.imgTk = ImageTk.PhotoImage(image="I", size=(self.ImageSize, self.ImageSize))
         self.imgSize = (self.imgTk.width(), self.imgTk.height())
         self.map = tk.Canvas(width=self.imgTk.width(), height=self.imgTk.height(), bg="white")
         self.mapImg = self.map.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         self.map.bind("<Button-1>", self.mapClicked)
         self.map.pack()
+        
         cmdFrame = tk.Frame(master=self.window)
         self.scanBtn = tk.Button(master=cmdFrame, text="Scan", command=self.scan)
         self.scanBtn.pack(fill=tk.X, side=tk.LEFT, expand=True)
@@ -24,10 +29,16 @@ class SlamUI:
         self.stopBtn = tk.Button(master=cmdFrame, text="Stop", command=self.stop)
         self.stopBtn.pack(fill=tk.X, side = tk.LEFT, expand=True)
         cmdFrame.pack(fill=tk.X)
+        
         self.quitBtn = tk.Button(text="Quit", command=self.quit)
         self.quitBtn.pack(fill=tk.X)
+        
         self.idArrow=None
         self.idCircle=None
+        self.target = None
+        
+        self.syncWithSlam(True)
+        
         """
         img = Image.new("I", (16, 16), color="grey")
         for y in range(img.height):
@@ -39,12 +50,25 @@ class SlamUI:
     def setArrow(self, pixStart, pixEnd):
         if self.idArrow:
             self.map.delete(self.idArrow)
-        self.idArrow = self.map.create_line(pixStart[0], pixStart[1], pixEnd[0], pixEmd[1], fill="red", arrow=tk.LAST)
+        self.idArrow = self.map.create_line(pixStart[0], pixStart[1], pixEnd[0], pixEnd[1], fill="red", arrow=tk.LAST)
 
     def setCircle(self, pixPos, pixRadius):
         if self.idCircle:
             self.map.delete(self.idCircle)
         self.idCircle = self.map.create_oval(pixPos[0]-pixRadius, pixPos[1]-pixRadius, pixPos[0]+pixRadius, pixPos[1]+pixRadius, fill="green")
+
+    def pixelFromPos(self, pos):
+        return mul(div(pos, self.slam.map.sizeInMeters()), (self.ImageSize,)*2)
+        
+    def posFromPixel(self, pix):
+        return mul(div(pix, (self.ImageSize,)*2), self.slam.map.sizeInMeters())
+
+    def syncWithSlam(self, syncMap):
+        pix = self.pixelFromPos(self.slam.pos)
+        delta = vecindir(self.slam.dir, 3.0)
+        self.setArrow(sub(pix, delta), add(pix, delta))
+        if syncMap:
+            self.updateImage(self.slam.map.map)
         
     def updateImage(self, img):
         self.imgTk.paste(img.resize((self.ImageSize, self.ImageSize), resample=Image.NEAREST))
@@ -53,24 +77,26 @@ class SlamUI:
     def mapClicked(self, event):
         if event.x >= self.imgTk.width() or event.y >= self.imgTk.height():
             return
-        x = event.x * self.imgSize[0] // self.imgTk.width()
-        y = event.y * self.imgSize[1] // self.imgTk.height()
-        self.setCircle((x, y), 5)
+        p = (event.x, event.y)
+        self.setCircle(p, 5)
+        self.target = self.posFromPixel(p)
 
+    def scanCmd(self):
+        self.slam.scan()
+        self.syncWithSlam(True)
+    
     def scan(self):
-        pass
+        self.slam.car.execCommand(self.scanCmd)
         
     def turn(self):
-        pass
+        self.slam.map.setLine(self.slam.pos, self.target)
+        self.syncWithSlam(True)
 
     def go(self):
-        print("Going!")
-        map = Map((6.4, 6.4), 0.1)
-        map.setLine((1.55, 5.55), (5.55,2.55))
-        self.updateImage(map.map)
+        pass
     
     def stop(self):
-        print("Stopping!")
+        self.slam.car.execCommand(None)
 
     def run(self):
         self.window.mainloop()
@@ -79,5 +105,6 @@ class SlamUI:
         self.window.destroy()
 
 if __name__ == '__main__':
-    ui = SlamUI()
+    slam = Slam()
+    ui = SlamUI(slam)
     ui.run()

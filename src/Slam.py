@@ -16,7 +16,8 @@ class Slam:
 	
 	
 	def scan(self):
-		scans = self.car.scanSector(-self.scanAngle, self.scanAngle)
+		self.car.pointSonic()
+		scans = self.car.scanSector(-self.ScanAngle, self.ScanAngle)
 		for ang, dist in scans:
 			end = add(self.pos, vecindir(self.dir+ang, dist))
 			self.map.setLine(self.pos, end)
